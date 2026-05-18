@@ -1,0 +1,48 @@
+# === Maven ===
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# === IntelliJ ===
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# === Eclipse / NetBeans (au cas où) ===
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# === VS Code ===
+.vscode/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+logs/
+
+# === Données locales (BDD H2 fichier, dumps) ===
+*.db
+*.mv.db
+*.trace.db
+
+# === Variables d'env locales ===
+.env
+.env.local
+
+# === Builds Spring ===
+HELP.md

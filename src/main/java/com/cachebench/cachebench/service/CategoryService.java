@@ -14,18 +14,30 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryService {
 
+    private static final long SIMULATED_DB_LATENCY_MS = 20;
+
     private final CategoryRepository categoryRepository;
 
     @Cacheable(value = "categories", key = "'all'")
     public List<Category> findAll() {
-        log.info(" DB hit - findAll categories");
+        log.info("🐢 DB hit - findAll categories");
+        simulateDatabaseLatency();
         return categoryRepository.findAll();
     }
 
     @Cacheable(value = "categories", key = "#id")
     public Category findById(Long id) {
-        log.info(" DB hit - findById category {}", id);
+        log.info("🐢 DB hit - findById category {}", id);
+        simulateDatabaseLatency();
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Catégorie introuvable : " + id));
+    }
+
+    private void simulateDatabaseLatency() {
+        try {
+            Thread.sleep(SIMULATED_DB_LATENCY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

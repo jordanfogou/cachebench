@@ -200,3 +200,59 @@ STABILITÉ du temps de réponse (réduction de la "tail latency").
 - Section 10.1 : intégrer ce tableau en seconde ligne du comparatif global
 - Section 10.3 : développer l'argument "tail latency" et son impact e-commerce
 - Section 11 : annoncer la phase 2 (conditions plus réalistes)
+### Difficulté rencontrée — Validation préalable d'une mesure
+
+Lors de l'introduction d'une latence simulée dans le service, le
+premier benchmark a produit des chiffres incohérents avec les
+modifications de code (latence moyenne de 0.87 ms alors que l'on
+attendait 20+ ms).
+
+Diagnostic : le hot-reload de Spring DevTools n'avait pas pris en
+compte les changements de code source. La JVM exécutait une version
+compilée antérieure. Un `mvn clean compile` suivi d'un redémarrage
+complet a résolu le problème.
+
+Cette anomalie a souligné l'importance d'un **protocole de validation
+préalable** à chaque mesure :
+1. Faire un test manuel avec un outil de mesure (DevTools Network)
+2. Vérifier que la latence mesurée correspond à l'attendu théorique
+3. Vérifier les logs applicatifs (présence des "🐢 DB hit")
+4. Seulement APRÈS lancer le benchmark.
+
+Cette discipline est désormais appliquée systématiquement.
+
+## Session 5 — Conditions réalistes : latence simulée 20 ms
+
+### Méthodologie
+- Introduction d'un Thread.sleep(20) dans toutes les méthodes du service,
+  simulant un accès BDD distante typique (10-50 ms en production réelle)
+- 2 benchmarks consécutifs (baseline puis Caffeine) avec exactement
+  le même script k6 et la même latence simulée
+- Validation préalable par test manuel (DevTools Network) confirmant
+  l'effectivité du sleep avant chaque mesure
+
+### Résultats clés
+| Métrique | Baseline | Caffeine | Gain |
+|---|---|---|---|
+| Latence avg | 29.3 ms | 1.22 ms | -95.8% |
+| Latence p50 | 28.45 ms | 1.02 ms | -96.4% |
+| Latence p95 | 37.81 ms | 2.11 ms | -94.4% |
+| Latence max | 151.68 ms | 84.43 ms | -44.4% |
+| Débit | 74 req/s | 78 req/s | +5.4% |
+
+### Difficulté rencontrée (importante pour le rapport)
+Premier benchmark donnait des chiffres incohérents (0.87 ms avec sleep
+de 20 ms attendu). Diagnostic : Spring DevTools n'avait pas correctement
+recompilé les classes Java modifiées. Solution : mvn clean compile +
+redémarrage complet de l'application. Test manuel préalable systématique
+ajouté au protocole.
+
+### Captures à archiver
+- 05-resultats-caffeine/2026-05-19_02_baseline-with-latency-results.png
+- 05-resultats-caffeine/2026-05-19_03_caffeine-with-latency-results.png
+
+### Pour le rapport
+- Section 10.1 : 2 lignes principales du tableau comparatif final
+- Section 10.3 : développement complet de l'analyse (-95% latence,
+  warm-up cost, débit plafonné, etc.)
+- Section 11 (perspectives) : pré-chauffage du cache en production

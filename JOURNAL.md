@@ -256,3 +256,37 @@ ajouté au protocole.
 - Section 10.3 : développement complet de l'analyse (-95% latence,
   warm-up cost, débit plafonné, etc.)
 - Section 11 (perspectives) : pré-chauffage du cache en production
+- ## Session 6 — Observabilité du cache
+
+### 🔨 Ce qui a été fait
+- Création d'un endpoint /api/admin/cache-stats exposant les statistiques
+  Caffeine (hits, misses, hit ratio, evictions, taille, temps de chargement)
+- Création d'un endpoint POST /api/admin/cache-clear pour reset
+- Démonstration en direct du comportement cache hit/miss
+- Mesure du hit ratio sur le benchmark complet : XX.XX %
+
+### Pour le rapport
+- Section 10.2 : intégrer le hit ratio mesuré comme indicateur clé
+- Section 9.2 : décrire l'exposition des stats Caffeine via recordStats +
+  endpoint d'observabilité
+- Annexe : code du CacheStatsController
+- Soutenance : prévoir une démo en live (reset → 10 requêtes → stats)
+### Schémas réalisés (session 6)
+- 2026-05-19_01_architecture-banc-test.png (figure pour section 8.2)
+- Source modifiable : architecture-banc-test.mmd (Mermaid)
+
+### Outil de visualisation choisi : Mermaid (mermaid.live)
+- Diagrammes-en-code : syntaxe textuelle simple, rendu instantané
+- Versionnable avec Git (.mmd files)
+- Lisible nativement par GitHub dans les README.md
+- Export PNG/SVG natif
+
+### Pour le rapport (section 8.2)
+"L'architecture du banc de test est représentée en figure X.
+Le client de test k6 envoie des requêtes HTTP vers l'API Spring Boot.
+À l'intérieur de l'API, les requêtes traversent successivement les couches
+Controllers, Services (où s'applique l'annotation @Cacheable) puis
+Repositories. La couche Services consulte d'abord le cache (étape 1) ;
+en cas de cache miss, la requête est transmise à la base de données
+(étape 2) via les Repositories. Le cache peut être implémenté localement
+(Caffeine) ou en mode distribué (Redis) selon la configuration."

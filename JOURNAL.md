@@ -120,3 +120,83 @@ et d'utiliser PagedModel ou Spring HATEOAS.
 "L'introduction de DTOs séparerait la couche persistance de la couche
 API, ce qui faciliterait également le caching propre (cache de DTO
 plutôt que d'entité JPA, ce qui évite les problèmes liés au lazy loading)."
+
+## Session 4 — Introduction du cache applicatif (étape A)
+
+###  Ce qui a été fait
+- Ajout de Spring Cache + Caffeine au projet (2 dépendances Maven)
+- Activation de `@EnableCaching` sur la classe principale
+- Vérification que l'application démarre sans régression
+
+###  Concepts mobilisés
+- **Abstraction Spring Cache** : sépare les annotations métier
+  (`@Cacheable`) de l'implémentation choisie (Caffeine, Redis...).
+  Permet de comparer des stratégies de cache sur un code identique
+  → garantie scientifique de la comparaison.
+- **Caffeine** : cache local en mémoire utilisant l'algorithme
+  W-TinyLFU (window TinyLFU), plus efficace que LRU classique sur
+  des charges typiques d'API web. Référence en JVM.
+- Maintenu par Ben Manes (https://github.com/ben-manes/caffeine).
+  Concurrent thread-safe par défaut.
+
+###  Pour le rapport
+- **Section 7.1 (concepts théoriques)** : développer W-TinyLFU vs LRU,
+  citer le papier original "TinyLFU: A Highly Efficient Cache
+  Admission Policy" (Einziger & Friedman, 2017).
+- **Section 8.2 (banc de test)** : justifier le choix Caffeine pour
+  le cache local (référence Java, perf, simplicité d'intégration Spring).
+- **Section 9.2 (cache local Caffeine)** : décrire l'intégration via
+  l'abstraction Spring Cache, montrer l'avantage architectural.
+- ### 🔨 Étape B — Configuration Caffeine et activation @Cacheable
+- Configuration Caffeine dans application.properties (maximumSize=1000, expireAfterWrite=10m, recordStats activées)
+- Annotation @Cacheable sur 6 méthodes des services (4 sur ProductService, 2 sur CategoryService)
+- Mise en place d'un log "🐢 DB hit" comme témoin visuel d'exécution réelle
+
+### ✅ Validation manuelle
+- 1er appel à /api/products/1 → log "🐢 DB hit - findById(1)" apparaît
+- Appels suivants → silence : cache hit confirmé
+- Comportement identique sur tous les endpoints cachés
+- Confirmation visuelle préalable indispensable avant benchmark scientifique
+
+### 💡 Concepts
+- **SpEL (Spring Expression Language)** : permet de construire des clés
+  de cache dynamiques à partir des paramètres (#id, #query + '-' + #page).
+- **Stratégie de "cache-aside"** : Spring Cache vérifie d'abord le cache,
+  exécute la méthode uniquement si miss, puis stocke le résultat.
+- **Cache namespacing** : séparer products / categories / searches permettra
+  une analyse fine du hit ratio par type de requête.
+
+###  Pour le rapport
+- Section 7.1 : développer le pattern "cache-aside" vs "write-through" vs "write-behind"
+- Section 7.1 : algorithme W-TinyLFU vs LRU
+- Section 9.2 : description complète de l'implémentation Caffeine
+- Section 10.3 : impact du `maximumSize` sur le hit ratio (à faire varier en bonus)
+###  Session 4 — Résultats Caffeine vs Baseline (19/05/2026)
+
+| Métrique           | Baseline | Caffeine | Gain    |
+|--------------------|----------|----------|---------|
+| Latence avg        | 1.74 ms  | 0.77 ms  | -55.7%  |
+| Latence p50        | 1.55 ms  | 0.74 ms  | -52.3%  |
+| Latence p90        | 2.44 ms  | 1.08 ms  | -55.7%  |
+| Latence p95        | 2.9 ms   | 1.15 ms  | -60.3%  |
+| Latence max        | 221.7 ms | 3.68 ms  | -98.3%  |
+| Débit              | 78 req/s | 78 req/s | ≈ (plafonné par sleep)  |
+| Erreurs            | 0%       | 0%       | =       |
+
+### Conclusion partielle (Caffeine)
+Le cache local Caffeine apporte un gain substantiel et reproductible
+sur tous les percentiles de latence, même en conditions très favorables
+à la baseline (H2 en mémoire, faible volumétrie). Le gain le plus
+significatif est observé sur la latence maximale (-98%), confirmant que
+le cache améliore non seulement la performance moyenne mais surtout la
+STABILITÉ du temps de réponse (réduction de la "tail latency").
+
+### Limites identifiées
+- Volumétrie de test faible (8 produits) non représentative
+- Débit plafonné par les sleeps du script k6
+- Conditions favorables (H2 en RAM) qui surestiment la baseline
+
+### Pour le rapport
+- Section 10.1 : intégrer ce tableau en seconde ligne du comparatif global
+- Section 10.3 : développer l'argument "tail latency" et son impact e-commerce
+- Section 11 : annoncer la phase 2 (conditions plus réalistes)
